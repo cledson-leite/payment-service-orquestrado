@@ -9,51 +9,43 @@ import com.cledsonLeite.payment.application.core.domain.enums.SaleEvent;
 import com.cledsonLeite.payment.application.ports.in.FindUserByIdInputPort;
 import com.cledsonLeite.payment.application.ports.in.PaymentSaleInputPort;
 import com.cledsonLeite.payment.application.ports.out.SavePaymentOutputPort;
-import com.cledsonLeite.payment.application.ports.out.SendValidatedPaymentOutputPort;
+import com.cledsonLeite.payment.application.ports.out.SendMessageToKafkaOutputPort;
 import com.cledsonLeite.payment.application.ports.out.UpdateUserOutputPort;
 
-public class PaymentSaleUsecase implements PaymentSaleInputPort{
-	
+public class PaymentSaleUsecase implements PaymentSaleInputPort {
+
 	private final FindUserByIdInputPort findUserByIdInputPort;
 	private final UpdateUserOutputPort updateUserOutputPort;
 	private final SavePaymentOutputPort savePaymentOutputPort;
-	private final SendValidatedPaymentOutputPort sendValidatedPaymentOutputPort;
-	
-	
-	
-	public PaymentSaleUsecase(
-			FindUserByIdInputPort findUserByIdInputPort,
-			UpdateUserOutputPort updateUserOutputPort,
-			SavePaymentOutputPort savePaymentOutputPort,
-			SendValidatedPaymentOutputPort sendValidatedPaymentOutputPort
-			) {
+	private final SendMessageToKafkaOutputPort sendMessageToKafkaOutputPort;
+
+	public PaymentSaleUsecase(FindUserByIdInputPort findUserByIdInputPort, UpdateUserOutputPort updateUserOutputPort,
+			SavePaymentOutputPort savePaymentOutputPort, SendMessageToKafkaOutputPort sendMessageToKafkaOutputPort) {
 		this.findUserByIdInputPort = findUserByIdInputPort;
 		this.updateUserOutputPort = updateUserOutputPort;
 		this.savePaymentOutputPort = savePaymentOutputPort;
-		this.sendValidatedPaymentOutputPort = sendValidatedPaymentOutputPort;
-		
+		this.sendMessageToKafkaOutputPort = sendMessageToKafkaOutputPort;
+
 	}
 
-
-
 	public void payment(Sale sale) {
-		User user = findUserByIdInputPort.find(sale.getId());
-		if(user.getBalance().compareTo(sale.getValue()) < 0) {
-			throw new RuntimeException("Saldo insuficiente");
+		try {
+			User user = findUserByIdInputPort.find(sale.getId());
+			if (user.getBalance().compareTo(sale.getValue()) < 0) {
+				throw new RuntimeException("Saldo insuficiente");
+			}
+
+			BigDecimal currentBalance = user.getBalance().subtract(sale.getValue());
+			user.setBalance(currentBalance);
+
+			updateUserOutputPort.update(user);
+			Payment payment = new Payment(null, sale.getUserId(), sale.getId(), sale.getValue());
+			savePaymentOutputPort.save(payment);
+			sendMessageToKafkaOutputPort.send(sale, SaleEvent.VALIDATED_PAYMENT);
+		} catch (Exception erro) {
+			sendMessageToKafkaOutputPort.send(sale, SaleEvent.FAILED_PAYMENT);
 		}
-		
-		BigDecimal currentBalance = user.getBalance().subtract(sale.getValue());
-		user.setBalance(currentBalance);
-		updateUserOutputPort.update(user);
-		Payment payment = new Payment(
-				null, 
-				sale.getUserId(), 
-				sale.getId(),
-				sale.getValue()
-				);
-		savePaymentOutputPort.save(payment);
-		sendValidatedPaymentOutputPort.send(sale, SaleEvent.VALIDATED_PAYMENT);
-		
+
 	}
 
 }

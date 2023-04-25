@@ -7,10 +7,10 @@ import org.springframework.stereotype.Component;
 import com.cledsonLeite.payment.adapter.out.message.SaleMessage;
 import com.cledsonLeite.payment.application.core.domain.Sale;
 import com.cledsonLeite.payment.application.core.domain.enums.SaleEvent;
-import com.cledsonLeite.payment.application.ports.out.SendValidatedPaymentOutputPort;
+import com.cledsonLeite.payment.application.ports.out.SendMessageToKafkaOutputPort;
 
 @Component
-public class SendValidatedPaymentAdapter implements SendValidatedPaymentOutputPort{
+public class SendMessageToKafkadapter implements SendMessageToKafkaOutputPort{
 
 	@Autowired
 	private KafkaTemplate<String, SaleMessage> template;
