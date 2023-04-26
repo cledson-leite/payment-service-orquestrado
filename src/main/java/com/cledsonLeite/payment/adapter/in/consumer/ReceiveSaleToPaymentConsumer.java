@@ -17,9 +17,9 @@ public class ReceiveSaleToPaymentConsumer {
 	@Autowired
 	PaymentSaleInputPort paymentInputPort;
 	
-	@KafkaListener(topics = "topic-saga-sale", groupId = "payment")
+	@KafkaListener(topics = "topic-saga-payment", groupId = "payment")
 	public void receive(SaleMessage message) {
-		if(SaleEvent.UPDATE_INVENTURY.equals(message.getEvent())) {
+		if(SaleEvent.EXECUTE_PAYMENT.equals(message.getEvent())) {
 			log.info("Iniciando pagamento ...");
 			paymentInputPort.payment(message.getSale());
 			log.info("Pagamento finalizado com sucesso");

@@ -41,9 +41,9 @@ public class PaymentSaleUsecase implements PaymentSaleInputPort {
 			updateUserOutputPort.update(user);
 			Payment payment = new Payment(null, sale.getUserId(), sale.getId(), sale.getValue());
 			savePaymentOutputPort.save(payment);
-			sendMessageToKafkaOutputPort.send(sale, SaleEvent.VALIDATED_PAYMENT);
+			sendMessageToKafkaOutputPort.send(sale, SaleEvent.PAYMENT_EXECUTED);
 		} catch (Exception erro) {
-			sendMessageToKafkaOutputPort.send(sale, SaleEvent.FAILED_PAYMENT);
+			sendMessageToKafkaOutputPort.send(sale, SaleEvent.PAYMENT_FAILED);
 		}
 
 	}
